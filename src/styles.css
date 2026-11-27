@@ -9267,6 +9267,16 @@ textarea {
   text-decoration: none;
 }
 
+.chat-shared-review:not(.chat-shared-music) {
+  --card-accent: var(--review-accent, var(--primary));
+  background: color-mix(in srgb, var(--card-accent) 14%, var(--glass-strong));
+  border-color: color-mix(in srgb, var(--card-accent) 32%, var(--line));
+}
+
+.chat-shared-review:not(.chat-shared-music) small {
+  color: color-mix(in srgb, var(--card-accent) 68%, var(--muted));
+}
+
 .chat-shared-review > img {
   width: 76px;
   height: 76px;
@@ -10235,6 +10245,66 @@ body {
 :root[data-theme="light"] .home-review-card .home-review-release {
   background: color-mix(in srgb, var(--card-accent) 8%, rgba(255, 255, 255, 0.75));
   border-color: color-mix(in srgb, var(--card-accent) 22%, rgba(30, 48, 69, 0.12));
+}
+
+/* Cor variável nos cards de resenha do perfil */
+.profile-review-card {
+  --card-accent: var(--review-accent, var(--artist-accent, var(--primary)));
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      color-mix(in srgb, var(--card-accent) 22%, transparent),
+      transparent 54%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--card-accent) 14%, rgba(16, 30, 56, 0.86)),
+      rgba(9, 17, 32, 0.82)
+    );
+  border-color: color-mix(in srgb, var(--card-accent) 32%, var(--line));
+  transition: transform 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-review-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--card-accent) 58%, rgba(255, 255, 255, 0.2));
+  box-shadow:
+    0 16px 34px rgba(3, 8, 20, 0.42),
+    0 0 22px color-mix(in srgb, var(--card-accent) 20%, transparent);
+}
+
+.profile-review-card .profile-review-artwork img {
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--card-accent) 30%, rgba(0, 0, 0, 0.35));
+}
+
+.profile-review-card .profile-review-heading .eyebrow {
+  color: color-mix(in srgb, var(--card-accent) 78%, var(--primary));
+}
+
+:root[data-theme="light"] .profile-review-card {
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      color-mix(in srgb, var(--card-accent) 18%, transparent),
+      transparent 56%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--card-accent) 12%, rgba(255, 255, 255, 0.9)),
+      rgba(246, 250, 253, 0.76)
+    );
+  border-color: color-mix(in srgb, var(--card-accent) 28%, rgba(30, 48, 69, 0.14));
+}
+
+:root[data-theme="light"] .profile-review-card:hover {
+  border-color: color-mix(in srgb, var(--card-accent) 54%, rgba(30, 48, 69, 0.2));
+  box-shadow:
+    0 14px 30px rgba(24, 39, 58, 0.12),
+    0 0 20px color-mix(in srgb, var(--card-accent) 16%, transparent);
+}
+
+:root[data-theme="light"] .profile-review-card .profile-review-heading .eyebrow {
+  color: color-mix(in srgb, var(--card-accent) 70%, var(--primary));
 }
 
 .youtube-mini-player {
