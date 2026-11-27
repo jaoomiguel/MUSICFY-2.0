@@ -2473,28 +2473,7 @@ app.get('/api/home-feed', optionalAuth, async (req, res) => {
     LIMIT 12
   `);
 
-  const personalizedFilter = req.user ? `
-    WHERE u.is_suspended = 0 AND (
-      rv.user_id = ?
-      OR EXISTS (
-        SELECT 1 FROM user_follows uf
-        WHERE uf.follower_id = ? AND uf.followed_id = rv.user_id
-      )
-      OR EXISTS (
-        SELECT 1 FROM pre_saves ps
-        WHERE ps.user_id = ? AND ps.release_id = rv.release_id
-      )
-      OR EXISTS (
-        SELECT 1 FROM favorites f
-        JOIN tracks t ON t.id = f.track_id
-        WHERE f.user_id = ? AND t.release_id = rv.release_id
-      )
-    )
-  ` : 'WHERE u.is_suspended = 0';
-  const feedParams = req.user
-    ? [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id]
-    : [0];
-  const reviews = await allDb(`
+  const generalReviews = await allDb(`
     SELECT rv.*, rm.gif_url, u.username, u.full_name, u.avatar_url,
       r.title AS release_title, r.cover_url AS release_cover, a.name AS artist_name,
       r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color,
@@ -2507,13 +2486,11 @@ app.get('/api/home-feed', optionalAuth, async (req, res) => {
     JOIN users u ON u.id = rv.user_id
     JOIN releases r ON r.id = rv.release_id
     JOIN artists a ON a.id = r.artist_id
-    ${personalizedFilter}
+    WHERE u.is_suspended = 0
     ORDER BY rv.created_at DESC
-    LIMIT 50
-  `, feedParams);
+  `, [req.user?.id || 0]);
 
   let followingReviews = [];
-  let generalReviews = reviews;
   if (req.user) {
     followingReviews = await allDb(`
       SELECT rv.*, rm.gif_url, u.username, u.full_name, u.avatar_url,
@@ -2534,7 +2511,6 @@ app.get('/api/home-feed', optionalAuth, async (req, res) => {
           WHERE uf.follower_id = ? AND uf.followed_id = rv.user_id
         )
       ORDER BY rv.created_at DESC
-      LIMIT 50
     `, [req.user.id, req.user.id]);
   }
 
@@ -2543,7 +2519,7 @@ app.get('/api/home-feed', optionalAuth, async (req, res) => {
     recent_releases: await attachReleaseArtists(recentReleases),
     following_reviews: followingReviews,
     general_reviews: generalReviews,
-    reviews: followingReviews.length ? followingReviews : generalReviews,
+    reviews: generalReviews,
   });
 });
 
