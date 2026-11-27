@@ -5,6 +5,7 @@ export const STORY_THEMES = [
   { id: 'aura', label: 'Aura Glass', description: 'Vidro escuro luminoso' },
   { id: 'aero', label: 'Aero Claro', description: 'Brilho Frutiger Aero' },
   { id: 'vinyl', label: 'Vinil Noturno', description: 'Capa com disco de vinil' },
+  { id: 'vinyl-light', label: 'Vinil Claro', description: 'Vinil com paleta clara' },
 ];
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -249,9 +250,9 @@ const drawTruncatedText = (ctx, text, x, y, maxWidth) => {
   ctx.fillText(`${shortened.trimEnd()}…`, x, y);
 };
 
-const drawVinylDisc = (ctx, cx, cy, radius, accentColor) => {
+const drawVinylDisc = (ctx, cx, cy, radius, accentColor, light = false) => {
   ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+  ctx.shadowColor = light ? 'rgba(26, 46, 70, 0.16)' : 'rgba(0, 0, 0, 0.55)';
   ctx.shadowBlur = 42;
   ctx.shadowOffsetX = 12;
   ctx.shadowOffsetY = 18;
@@ -259,9 +260,9 @@ const drawVinylDisc = (ctx, cx, cy, radius, accentColor) => {
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   const discGrad = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.1, cx, cy, radius);
-  discGrad.addColorStop(0, '#2a303b');
-  discGrad.addColorStop(0.65, '#11141a');
-  discGrad.addColorStop(1, '#07090d');
+  discGrad.addColorStop(0, light ? '#f7fbff' : '#2a303b');
+  discGrad.addColorStop(0.65, light ? '#dbe9f5' : '#11141a');
+  discGrad.addColorStop(1, light ? '#b9cede' : '#07090d');
   ctx.fillStyle = discGrad;
   ctx.fill();
   ctx.restore();
@@ -270,19 +271,19 @@ const drawVinylDisc = (ctx, cx, cy, radius, accentColor) => {
   for (let r = radius * 0.44; r < radius * 0.94; r += 20) {
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.strokeStyle = light ? 'rgba(26, 38, 54, 0.12)' : 'rgba(255, 255, 255, 0.06)';
     ctx.lineWidth = 2;
     ctx.stroke();
   }
 
   ctx.beginPath();
   ctx.arc(cx, cy, radius * 0.33, 0, Math.PI * 2);
-  ctx.fillStyle = mixRgb(accentColor, '#141923', 0.25);
+  ctx.fillStyle = light ? mixRgb(accentColor, '#ffffff', 0.35) : mixRgb(accentColor, '#141923', 0.25);
   ctx.fill();
 
   ctx.beginPath();
   ctx.arc(cx, cy, radius * 0.08, 0, Math.PI * 2);
-  ctx.fillStyle = '#090d14';
+  ctx.fillStyle = light ? '#e8f2fb' : '#090d14';
   ctx.fill();
   ctx.restore();
 };
@@ -330,8 +331,8 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D não disponível neste navegador.');
 
-  const isLight = themeId === 'aero';
-  const isVinyl = themeId === 'vinyl';
+  const isLight = themeId === 'aero' || themeId === 'vinyl-light';
+  const isVinyl = themeId === 'vinyl' || themeId === 'vinyl-light';
 
   // 1. Background sky / aura gradient (derived from the album accent)
   const bgGradient = ctx.createLinearGradient(0, 0, STORY_WIDTH, STORY_HEIGHT);
@@ -428,7 +429,7 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
   const coverY = cardY + 86;
 
   if (isVinyl) {
-    drawVinylDisc(ctx, coverX + coverSize - 10, coverY + coverSize / 2, coverSize * 0.45, accentColor);
+    drawVinylDisc(ctx, coverX + coverSize - 10, coverY + coverSize / 2, coverSize * 0.45, accentColor, isLight);
   }
 
   ctx.save();
@@ -436,7 +437,7 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
   ctx.shadowBlur = 54;
   ctx.shadowOffsetY = 24;
   roundedRectPath(ctx, coverX, coverY, coverSize, coverSize, 38);
-  ctx.fillStyle = '#0f1622';
+  ctx.fillStyle = isLight ? '#f7fbff' : '#0f1622';
   ctx.fill();
   ctx.restore();
 
