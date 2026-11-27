@@ -1127,6 +1127,7 @@ function HomePage() {
             <div className="home-review-list">
               {visibleReviews.map((review) => {
   const accentColor =
+    review.release_accent_color ||
     review.accent_color ||
     review.artist_accent_color ||
     getArtistAccentColor({
@@ -1731,7 +1732,7 @@ function ShareReviewButton({ review, user }) {
   const [sentUserIds, setSentUserIds] = useState([]);
 
   const canShareInternally = Boolean(user && isAccountApproved(user));
-  const cardAccent = review?.accent_color || review?.artist_accent_color || '#31b6c5';
+  const cardAccent = review?.release_accent_color || review?.accent_color || review?.artist_accent_color || '#31b6c5';
 
   useEffect(() => {
     if (!isOpen || shareMode !== 'external') return undefined;
@@ -1838,35 +1839,36 @@ function ShareReviewButton({ review, user }) {
     setStatusMessage('Imagem 9:16 salva! Agora é só postar nos Stories do Instagram.');
   };
 
-  const shareExternally = async () => {
-    const shareUrl = `${window.location.origin}/releases/${review.release_id}?review=${encodeURIComponent(review.id)}`;
-    const shareData = {
-      title: review.release_title || 'Resenha no Musicfy',
-      text: `Confira esta resenha no Musicfy: ${review.release_title || 'um lançamento'}`,
-      url: shareUrl,
-    };
+  const shareUrl = `${window.location.origin}/releases/${review.release_id}?review=${encodeURIComponent(review.id)}`;
+
+  const copyInviteLink = async () => {
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        setShareStatus('Compartilhamento externo aberto.');
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        setShareStatus('Link copiado. Você já pode compartilhar fora do Musicfy.');
-      }
-    } catch (error) {
-      if (error?.name !== 'AbortError') setShareStatus('Não foi possível compartilhar agora.');
+      await navigator.clipboard.writeText(shareUrl);
+      setStatusMessage('Link copiado! Cole como sticker no seu Story.');
+    } catch {
+      setErrorMessage('Não foi possível copiar o link agora.');
     }
   };
 
-  const shareWithFollower = async (follower) => {
+  const shareToStories = async () => {
+    if (!storyBlob) return;
+    const file = new File([storyBlob], fileName, { type: 'image/png' });
+    const shareData = {
+      files: [file],
+      title: review?.release_title || 'Resenha no Musicfy',
+      text: `Confira minha resenha de ${review?.release_title || 'um lançamento'} no Musicfy`,
+    };
     try {
-      await api.post(`/messages/${follower.id}`, {
-        body: 'Compartilhei uma resenha com você.',
-        review_id: review.id,
-      });
-      setShareStatus(`Resenha enviada para @${follower.username}.`);
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share(shareData);
+        setStatusMessage('Menu de compartilhamento aberto. Escolha o Instagram!');
+      } else {
+        downloadPng();
+      }
     } catch (error) {
-      setShareStatus(error.response?.data?.error || 'Não foi possível compartilhar com esta pessoa.');
+      if (error?.name !== 'AbortError') {
+        setStatusMessage('Não foi possível abrir o compartilhamento. Baixe a imagem e poste manualmente.');
+      }
     }
   };
 
@@ -2946,7 +2948,16 @@ function ChatPage() {
                         />
                       )}
                       {message.shared_review_id && (
-                        <Link className="chat-shared-review" to={`/releases/${message.shared_review_release_id}`}>
+                        <Link
+                          className="chat-shared-review"
+                          to={`/releases/${message.shared_review_release_id}`}
+                          style={{
+                            '--review-accent':
+                              message.shared_review_release_accent ||
+                              message.shared_review_artist_accent ||
+                              '#31b6c5',
+                          }}
+                        >
                           <img
                             src={message.shared_review_release_cover || imagePlaceholder}
                             onError={(event) => handleImageError(event, imagePlaceholder)}
@@ -4843,7 +4854,17 @@ function ProfilePage() {
           {visibleProfileReviews.length ? (
             <div className="profile-review-list">
               {visibleProfileReviews.map((review) => (
-                <article key={review.id} className="profile-review-card glass-panel">
+                <article
+                  key={review.id}
+                  className="profile-review-card glass-panel"
+                  style={{
+                    '--review-accent':
+                      review.release_accent_color ||
+                      review.accent_color ||
+                      review.artist_accent_color ||
+                      getArtistAccentColor({ name: review.artist_name }),
+                  }}
+                >
                   <Link to={`/releases/${review.release_id}`} className="profile-review-artwork" aria-label={`Abrir ${review.release_title}`}>
                     <img src={review.release_cover || imagePlaceholder} onError={(event) => handleImageError(event, imagePlaceholder)} alt="" />
                   </Link>
@@ -4853,31 +4874,21 @@ function ProfilePage() {
                         <span className="eyebrow">{review.artist_name || 'Lançamento'}</span>
                         <Link to={`/releases/${review.release_id}`} className="profile-review-title">{review.release_title}</Link>
                       </div>
-                      <p>{review.review_text || 'Sem comentário escrito.'}</p>
-                      {review.gif_url && <ReviewGif src={review.gif_url} />}
-                      <small>{review.created_at}</small>
-                      <ReviewLikeButton review={review} user={user} />
-                      <ShareReviewButton
-                        review={{
-                          ...review,
-                          avatar_url: profile.user.avatar_url,
-                          full_name: profile.user.full_name,
-                          username: profile.user.username,
-                        }}
-                        user={user}
-                      />
-                      <ReviewOwnerActions
-                        review={review}
-                        user={user}
-                        onUpdated={handleReviewUpdated}
-                        onDeleted={handleReviewDeleted}
-                      />
+                      <RatingBadge value={review.rating} />
                     </div>
                     <p>{review.review_text || 'Sem comentário escrito.'}</p>
                     {review.gif_url && <ReviewGif src={review.gif_url} />}
                     <small>{review.created_at}</small>
                     <ReviewLikeButton review={review} user={user} />
-                    <ShareReviewButton review={review} user={user} />
+                    <ShareReviewButton
+                      review={{
+                        ...review,
+                        avatar_url: profile.user.avatar_url,
+                        full_name: profile.user.full_name,
+                        username: profile.user.username,
+                      }}
+                      user={user}
+                    />
                     <ReviewOwnerActions
                       review={review}
                       user={user}

@@ -1442,6 +1442,7 @@ app.get('/api/releases/:id', async (req, res) => {
   }));
   const reviews = await allDb(`
     SELECT rv.*, rm.gif_url, u.username, u.avatar_url,
+      r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color,
       (SELECT COUNT(*) FROM review_likes rl WHERE rl.review_id = rv.id) AS like_count,
       EXISTS (
         SELECT 1 FROM review_likes rl WHERE rl.review_id = rv.id AND rl.user_id = ?
@@ -1449,6 +1450,8 @@ app.get('/api/releases/:id', async (req, res) => {
     FROM reviews rv
     LEFT JOIN review_media rm ON rm.review_id = rv.id
     JOIN users u ON u.id = rv.user_id
+    JOIN releases r ON r.id = rv.release_id
+    JOIN artists a ON a.id = r.artist_id
     WHERE rv.release_id = ?
       AND u.is_suspended = 0
     ORDER BY rv.created_at DESC
@@ -1728,7 +1731,8 @@ app.get('/api/reviews/:id/share-preview', requireAuth, async (req, res) => {
   const review = await getDb(`
     SELECT rv.id, rv.user_id, rv.release_id, rv.rating, rv.review_text, rv.created_at,
       rm.gif_url, u.username, u.full_name, u.avatar_url,
-      r.title AS release_title, r.cover_url AS release_cover, a.name AS artist_name
+      r.title AS release_title, r.cover_url AS release_cover, a.name AS artist_name,
+      r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color
     FROM reviews rv
     JOIN users u ON u.id = rv.user_id
     JOIN releases r ON r.id = rv.release_id
@@ -1920,6 +1924,7 @@ app.get('/api/messages/:userId', requireAuth, async (req, res) => {
       rv_user.username AS shared_review_username, rv_user.full_name AS shared_review_full_name,
       r.title AS shared_review_release_title, r.cover_url AS shared_review_release_cover,
       a.name AS shared_review_artist_name, rm.gif_url AS shared_review_gif_url,
+      r.accent_color AS shared_review_release_accent, a.accent_color AS shared_review_artist_accent,
       sr.title AS shared_release_title, sr.cover_url AS shared_release_cover, sra.name AS shared_release_artist_name,
       st.title AS shared_track_title, st.duration AS shared_track_duration, str.title AS shared_track_release_title
     FROM (
@@ -2296,6 +2301,7 @@ app.get('/api/profile/:userId', optionalAuth, async (req, res) => {
 
   const reviews = await allDb(`
     SELECT rv.*, rm.gif_url, r.title AS release_title, r.cover_url AS release_cover, a.name AS artist_name,
+      r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color,
       (SELECT COUNT(*) FROM review_likes rl WHERE rl.review_id = rv.id) AS like_count,
       EXISTS (
         SELECT 1 FROM review_likes rl WHERE rl.review_id = rv.id AND rl.user_id = ?
@@ -2406,6 +2412,7 @@ app.get('/api/explore', optionalAuth, async (req, res) => {
   const reviews = await allDb(`
     SELECT rv.*, rm.gif_url, u.username, u.full_name, u.avatar_url,
       r.title AS release_title, r.cover_url AS cover_url, a.name AS artist_name,
+      r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color,
       (SELECT COUNT(*) FROM review_likes rl WHERE rl.review_id = rv.id) AS like_count,
       EXISTS (
         SELECT 1 FROM review_likes rl WHERE rl.review_id = rv.id AND rl.user_id = ?
@@ -2475,6 +2482,7 @@ app.get('/api/home-feed', optionalAuth, async (req, res) => {
   const reviews = await allDb(`
     SELECT rv.*, rm.gif_url, u.username, u.full_name, u.avatar_url,
       r.title AS release_title, r.cover_url AS release_cover, a.name AS artist_name,
+      r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color,
       (SELECT COUNT(*) FROM review_likes rl WHERE rl.review_id = rv.id) AS like_count,
       EXISTS (
         SELECT 1 FROM review_likes rl WHERE rl.review_id = rv.id AND rl.user_id = ?
@@ -2495,6 +2503,7 @@ app.get('/api/home-feed', optionalAuth, async (req, res) => {
     followingReviews = await allDb(`
       SELECT rv.*, rm.gif_url, u.username, u.full_name, u.avatar_url,
         r.title AS release_title, r.cover_url AS release_cover, a.name AS artist_name,
+        r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color,
         (SELECT COUNT(*) FROM review_likes rl WHERE rl.review_id = rv.id) AS like_count,
         EXISTS (
           SELECT 1 FROM review_likes rl WHERE rl.review_id = rv.id AND rl.user_id = ?

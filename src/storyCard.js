@@ -196,7 +196,7 @@ const getRatingPalette = (rating) => {
 };
 
 export async function renderStoryCard({ review, themeId = 'aura', showQuote = true, fallbackCover = '' }) {
-  const accentColor = review?.accent_color || review?.artist_accent_color || '#31b6c5';
+  const accentColor = review?.release_accent_color || review?.accent_color || review?.artist_accent_color || '#31b6c5';
   const [coverImage, avatarImage] = await Promise.all([
     loadStoryImage(review?.release_cover || fallbackCover),
     loadStoryImage(review?.avatar_url),
