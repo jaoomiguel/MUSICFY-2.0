@@ -11063,6 +11063,19 @@ body {
   width: 100%;
 }
 
+@media (max-width: 900px) {
+  .story-share-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .story-share-preview-frame {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+}
+
 @media (max-width: 720px) {
   .story-share-backdrop {
     padding: 10px;
@@ -11073,6 +11086,16 @@ body {
     padding: 16px;
     border-radius: 22px;
     max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .story-share-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .story-share-header h2 {
+    font-size: 1rem;
   }
 
   .share-destination-tabs,
@@ -11088,13 +11111,34 @@ body {
   }
 
   .story-share-preview-frame {
-    max-width: 245px;
+    max-width: 240px;
     margin: 0 auto;
   }
 
   .share-modal-section {
     margin-top: 20px;
     padding-top: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .story-share-modal {
+    padding: 13px;
+    border-radius: 18px;
+  }
+
+  .story-share-preview-frame {
+    max-width: 200px;
+  }
+
+  .story-share-actions .primary-btn,
+  .story-share-actions .secondary-btn {
+    min-height: 44px;
+    font-size: 0.82rem;
+  }
+
+  .story-theme-pill {
+    padding: 10px 11px;
   }
 }
 

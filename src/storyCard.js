@@ -32,6 +32,110 @@ const mixRgb = (hexA, hexB, weight = 0.5) => {
   return `rgb(${Math.round(a.r * (1 - t) + b.r * t)}, ${Math.round(a.g * (1 - t) + b.g * t)}, ${Math.round(a.b * (1 - t) + b.b * t)})`;
 };
 
+const rgbToHsl = (hex) => {
+  const { r, g, b } = parseHex(hex);
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
+    else if (max === gn) h = (bn - rn) / d + 2;
+    else h = (rn - gn) / d + 4;
+    h /= 6;
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+};
+
+const hslToHex = (h, s, l) => {
+  const hue = (((h % 360) + 360) % 360) / 360;
+  const sat = clamp(s, 0, 100) / 100;
+  const light = clamp(l, 0, 100) / 100;
+  const hue2rgb = (p, q, t) => {
+    let value = t;
+    if (value < 0) value += 1;
+    if (value > 1) value -= 1;
+    if (value < 1 / 6) return p + (q - p) * 6 * value;
+    if (value < 1 / 2) return q;
+    if (value < 2 / 3) return p + (q - p) * (2 / 3 - value) * 6;
+    return p;
+  };
+
+  let r;
+  let g;
+  let b;
+  if (sat === 0) {
+    r = light;
+    g = light;
+    b = light;
+  } else {
+    const q = light < 0.5 ? light * (1 + sat) : light + sat - light * sat;
+    const p = 2 * light - q;
+    r = hue2rgb(p, q, hue + 1 / 3);
+    g = hue2rgb(p, q, hue);
+    b = hue2rgb(p, q, hue - 1 / 3);
+  }
+
+  const toHex = (value) => Math.round(value * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const tone = (hex, { hueShift = 0, satScale = 1, lightSet } = {}) => {
+  const { h, s, l } = rgbToHsl(hex);
+  return hslToHex(h + hueShift, s * satScale, lightSet == null ? l : lightSet);
+};
+
+const getDominantColor = (image) => {
+  if (!image || !image.naturalWidth || !image.naturalHeight) return null;
+  try {
+    const size = 28;
+    const sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = size;
+    sampleCanvas.height = size;
+    const sampleCtx = sampleCanvas.getContext('2d');
+    if (!sampleCtx) return null;
+    sampleCtx.drawImage(image, 0, 0, size, size);
+    const { data } = sampleCtx.getImageData(0, 0, size, size);
+
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const alpha = data[i + 3];
+      if (alpha < 128) continue;
+      const pr = data[i];
+      const pg = data[i + 1];
+      const pb = data[i + 2];
+      const max = Math.max(pr, pg, pb);
+      const min = Math.min(pr, pg, pb);
+      if (max > 244 && min > 244) continue;
+      if (max < 16) continue;
+      r += pr;
+      g += pg;
+      b += pb;
+      count += 1;
+    }
+    if (!count) return null;
+
+    const average = `#${[r, g, b]
+      .map((value) => Math.round(value / count).toString(16).padStart(2, '0'))
+      .join('')}`;
+    const { h, s, l } = rgbToHsl(average);
+    return hslToHex(h, clamp(s * 1.2, 24, 92), clamp(l, 26, 58));
+  } catch {
+    return null;
+  }
+};
+
 const loadImageDirect = (src) => new Promise((resolve, reject) => {
   const image = new Image();
   image.crossOrigin = 'anonymous';
@@ -196,11 +300,34 @@ const getRatingPalette = (rating) => {
 };
 
 export async function renderStoryCard({ review, themeId = 'aura', showQuote = true, fallbackCover = '' }) {
-  const accentColor = review?.release_accent_color || review?.accent_color || review?.artist_accent_color || '#31b6c5';
   const [coverImage, avatarImage] = await Promise.all([
     loadStoryImage(review?.release_cover || fallbackCover),
     loadStoryImage(review?.avatar_url),
   ]);
+
+  const configuredAccent = review?.release_accent_color || review?.accent_color || review?.artist_accent_color;
+  const accentColor = configuredAccent || getDominantColor(coverImage) || '#31b6c5';
+  const accentHsl = rgbToHsl(accentColor);
+  const accentDeep = hslToHex(
+    accentHsl.h,
+    clamp(accentHsl.s * 1.05, 26, 92),
+    clamp(accentHsl.l * 0.66, 20, 44),
+  );
+  const accentMid = hslToHex(
+    accentHsl.h + 22,
+    clamp(accentHsl.s * 0.88, 20, 82),
+    clamp(accentHsl.l * 0.42, 10, 28),
+  );
+  const accentBottom = hslToHex(
+    accentHsl.h + 48,
+    clamp(accentHsl.s * 0.92, 20, 86),
+    clamp(accentHsl.l * 0.3, 7, 20),
+  );
+  const accentComplement = hslToHex(
+    accentHsl.h + 148,
+    clamp(accentHsl.s * 0.85, 22, 88),
+    clamp(accentHsl.l * 0.72, 24, 58),
+  );
 
   const canvas = document.createElement('canvas');
   canvas.width = STORY_WIDTH;
@@ -211,20 +338,20 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
   const isLight = themeId === 'aero';
   const isVinyl = themeId === 'vinyl';
 
-  // 1. Background sky / aura gradient
+  // 1. Background sky / aura gradient (derived from the album accent)
   const bgGradient = ctx.createLinearGradient(0, 0, STORY_WIDTH, STORY_HEIGHT);
   if (isLight) {
-    bgGradient.addColorStop(0, mixRgb('#f7fbff', accentColor, 0.16));
-    bgGradient.addColorStop(0.52, '#edf4f9');
-    bgGradient.addColorStop(1, mixRgb('#e2edf4', accentColor, 0.22));
+    bgGradient.addColorStop(0, hslToHex(accentHsl.h, clamp(accentHsl.s * 0.65, 14, 62), 93));
+    bgGradient.addColorStop(0.52, hslToHex(accentHsl.h + 16, clamp(accentHsl.s * 0.5, 10, 48), 96));
+    bgGradient.addColorStop(1, hslToHex(accentHsl.h + 30, clamp(accentHsl.s * 0.6, 12, 58), 87));
   } else if (isVinyl) {
-    bgGradient.addColorStop(0, mixRgb('#0b0f17', accentColor, 0.18));
-    bgGradient.addColorStop(0.55, '#070a10');
-    bgGradient.addColorStop(1, mixRgb('#05070b', accentColor, 0.24));
+    bgGradient.addColorStop(0, accentDeep);
+    bgGradient.addColorStop(0.52, accentMid);
+    bgGradient.addColorStop(1, accentBottom);
   } else {
-    bgGradient.addColorStop(0, mixRgb('#090d14', accentColor, 0.28));
-    bgGradient.addColorStop(0.52, '#0d1522');
-    bgGradient.addColorStop(1, mixRgb('#070b11', accentColor, 0.24));
+    bgGradient.addColorStop(0, hslToHex(accentHsl.h, clamp(accentHsl.s * 1.05, 28, 94), clamp(accentHsl.l * 0.72, 20, 46)));
+    bgGradient.addColorStop(0.5, accentMid);
+    bgGradient.addColorStop(1, accentBottom);
   }
   ctx.fillStyle = bgGradient;
   ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
@@ -237,9 +364,9 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
     ctx.fillStyle = grad;
     ctx.fillRect(ox - radius, oy - radius, radius * 2, radius * 2);
   };
-  drawOrb(190, 260, 620, accentColor, isLight ? 0.32 : 0.42);
-  drawOrb(910, 1520, 680, isLight ? '#7dd3fc' : accentColor, isLight ? 0.36 : 0.3);
-  drawOrb(840, 420, 440, isLight ? '#9be5c7' : '#38bdf8', isLight ? 0.26 : 0.18);
+  drawOrb(190, 260, 620, accentColor, isLight ? 0.28 : 0.4);
+  drawOrb(910, 1520, 680, isLight ? accentColor : accentComplement, isLight ? 0.3 : 0.32);
+  drawOrb(840, 420, 440, isLight ? accentComplement : tone(accentColor, { hueShift: -38 }), isLight ? 0.22 : 0.2);
 
   // Top brand pill
   ctx.save();
@@ -278,8 +405,8 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
     cardGrad.addColorStop(0, 'rgba(255, 255, 255, 0.90)');
     cardGrad.addColorStop(1, 'rgba(241, 247, 252, 0.76)');
   } else {
-    cardGrad.addColorStop(0, rgba(mixRgb('#141e2e', accentColor, 0.2), 0.88));
-    cardGrad.addColorStop(1, 'rgba(11, 17, 27, 0.86)');
+    cardGrad.addColorStop(0, rgba(hslToHex(accentHsl.h, clamp(accentHsl.s * 0.55, 14, 62), clamp(accentHsl.l * 0.36, 10, 26)), 0.9));
+    cardGrad.addColorStop(1, rgba(hslToHex(accentHsl.h + 26, clamp(accentHsl.s * 0.5, 12, 58), clamp(accentHsl.l * 0.2, 6, 15)), 0.88));
   }
   ctx.fillStyle = cardGrad;
   ctx.fill();
