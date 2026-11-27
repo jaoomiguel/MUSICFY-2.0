@@ -3801,8 +3801,9 @@ textarea {
 }
 
 .profile-review-copy {
-  display: grid;
-  align-content: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   gap: 8px;
   min-width: 0;
 }
@@ -3864,6 +3865,46 @@ textarea {
 .profile-review-copy > small {
   color: var(--muted);
   font-size: 0.72rem;
+}
+
+.profile-review-copy .review-gif-frame {
+  max-width: 320px;
+}
+
+.profile-review-copy .review-gif-frame img {
+  max-height: 200px;
+}
+
+.profile-review-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.profile-review-footer > small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.profile-review-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-review-actions .review-owner-actions {
+  margin-left: 0;
+}
+
+.profile-playlist-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
 .playlist-create-panel {

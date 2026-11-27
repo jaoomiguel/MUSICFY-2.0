@@ -4470,6 +4470,7 @@ function ProfilePage() {
   const [playlistIsPublic, setPlaylistIsPublic] = useState(true);
   const [playlistError, setPlaylistError] = useState('');
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
+  const [showPlaylistCreator, setShowPlaylistCreator] = useState(false);
   const [playlistInviteQuery, setPlaylistInviteQuery] = useState('');
   const [playlistInviteResults, setPlaylistInviteResults] = useState([]);
   const [playlistInviteUsers, setPlaylistInviteUsers] = useState([]);
@@ -4565,6 +4566,7 @@ function ProfilePage() {
       setPlaylistInviteQuery('');
       setPlaylistInviteResults([]);
       setPlaylistInviteUsers([]);
+      setShowPlaylistCreator(false);
       await loadProfile();
       navigate(`/playlists/${response.data.playlistId}`);
     } catch (error) {
@@ -4879,23 +4881,27 @@ function ProfilePage() {
                     </div>
                     <p>{review.review_text || 'Sem comentário escrito.'}</p>
                     {review.gif_url && <ReviewGif src={review.gif_url} />}
-                    <small>{review.created_at}</small>
-                    <ReviewLikeButton review={review} user={user} />
-                    <ShareReviewButton
-                      review={{
-                        ...review,
-                        avatar_url: profile.user.avatar_url,
-                        full_name: profile.user.full_name,
-                        username: profile.user.username,
-                      }}
-                      user={user}
-                    />
-                    <ReviewOwnerActions
-                      review={review}
-                      user={user}
-                      onUpdated={handleReviewUpdated}
-                      onDeleted={handleReviewDeleted}
-                    />
+                    <div className="profile-review-footer">
+                      <small>{review.created_at}</small>
+                      <div className="profile-review-actions">
+                        <ReviewLikeButton review={review} user={user} />
+                        <ShareReviewButton
+                          review={{
+                            ...review,
+                            avatar_url: profile.user.avatar_url,
+                            full_name: profile.user.full_name,
+                            username: profile.user.username,
+                          }}
+                          user={user}
+                        />
+                        <ReviewOwnerActions
+                          review={review}
+                          user={user}
+                          onUpdated={handleReviewUpdated}
+                          onDeleted={handleReviewDeleted}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -4924,6 +4930,21 @@ function ProfilePage() {
           </div>
 
           {canManageProfile && (
+            <div className="profile-playlist-toolbar">
+              <button
+                type="button"
+                className={showPlaylistCreator ? 'secondary-btn' : 'primary-btn'}
+                onClick={() => {
+                  setShowPlaylistCreator((current) => !current);
+                  setPlaylistError('');
+                }}
+              >
+                {showPlaylistCreator ? 'Cancelar' : '+ Criar nova playlist'}
+              </button>
+            </div>
+          )}
+
+          {canManageProfile && showPlaylistCreator && (
             <form className="playlist-create-panel glass-panel" onSubmit={(event) => {
               event.preventDefault();
               void createPlaylist();
@@ -5047,7 +5068,10 @@ function ProfilePage() {
                   <div className="profile-playlist-copy">
                     <h3>{playlist.name}</h3>
                     <p>{playlist.description || 'Uma seleção pessoal de músicas.'}</p>
-                    <small>{Number(playlist.track_count || 0)} {Number(playlist.track_count || 0) === 1 ? 'música' : 'músicas'}</small>
+                    <small>
+                      {Number(playlist.track_count || 0)} {Number(playlist.track_count || 0) === 1 ? 'música' : 'músicas'}
+                      {Number(playlist.collaborator_count || 0) > 0 ? ' · Compartilhada' : ''}
+                    </small>
                   </div>
                   <span className="profile-playlist-open" aria-hidden="true">↗</span>
                 </Link>
