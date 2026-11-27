@@ -88,11 +88,6 @@ const hslToHex = (h, s, l) => {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 };
 
-const tone = (hex, { hueShift = 0, satScale = 1, lightSet } = {}) => {
-  const { h, s, l } = rgbToHsl(hex);
-  return hslToHex(h + hueShift, s * satScale, lightSet == null ? l : lightSet);
-};
-
 const getDominantColor = (image) => {
   if (!image || !image.naturalWidth || !image.naturalHeight) return null;
   try {
@@ -308,25 +303,25 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
   const configuredAccent = review?.release_accent_color || review?.accent_color || review?.artist_accent_color;
   const accentColor = configuredAccent || getDominantColor(coverImage) || '#31b6c5';
   const accentHsl = rgbToHsl(accentColor);
-  const accentDeep = hslToHex(
+  const accentTop = hslToHex(
     accentHsl.h,
-    clamp(accentHsl.s * 1.05, 26, 92),
-    clamp(accentHsl.l * 0.66, 20, 44),
+    clamp(accentHsl.s * 1.02, 24, 94),
+    clamp(accentHsl.l * 0.94, 22, 52),
   );
   const accentMid = hslToHex(
-    accentHsl.h + 22,
-    clamp(accentHsl.s * 0.88, 20, 82),
-    clamp(accentHsl.l * 0.42, 10, 28),
+    accentHsl.h,
+    clamp(accentHsl.s * 0.9, 22, 88),
+    clamp(accentHsl.l * 0.56, 12, 34),
   );
   const accentBottom = hslToHex(
-    accentHsl.h + 48,
-    clamp(accentHsl.s * 0.92, 20, 86),
-    clamp(accentHsl.l * 0.3, 7, 20),
+    accentHsl.h,
+    clamp(accentHsl.s * 0.82, 18, 82),
+    clamp(accentHsl.l * 0.32, 7, 20),
   );
-  const accentComplement = hslToHex(
-    accentHsl.h + 148,
-    clamp(accentHsl.s * 0.85, 22, 88),
-    clamp(accentHsl.l * 0.72, 24, 58),
+  const accentGlow = hslToHex(
+    accentHsl.h,
+    clamp(accentHsl.s * 1.05, 26, 94),
+    clamp(accentHsl.l * 0.78, 24, 56),
   );
 
   const canvas = document.createElement('canvas');
@@ -342,21 +337,21 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
   const bgGradient = ctx.createLinearGradient(0, 0, STORY_WIDTH, STORY_HEIGHT);
   if (isLight) {
     bgGradient.addColorStop(0, hslToHex(accentHsl.h, clamp(accentHsl.s * 0.65, 14, 62), 93));
-    bgGradient.addColorStop(0.52, hslToHex(accentHsl.h + 16, clamp(accentHsl.s * 0.5, 10, 48), 96));
-    bgGradient.addColorStop(1, hslToHex(accentHsl.h + 30, clamp(accentHsl.s * 0.6, 12, 58), 87));
+    bgGradient.addColorStop(0.52, hslToHex(accentHsl.h, clamp(accentHsl.s * 0.5, 10, 48), 96));
+    bgGradient.addColorStop(1, hslToHex(accentHsl.h, clamp(accentHsl.s * 0.6, 12, 58), 87));
   } else if (isVinyl) {
-    bgGradient.addColorStop(0, accentDeep);
+    bgGradient.addColorStop(0, accentTop);
     bgGradient.addColorStop(0.52, accentMid);
     bgGradient.addColorStop(1, accentBottom);
   } else {
-    bgGradient.addColorStop(0, hslToHex(accentHsl.h, clamp(accentHsl.s * 1.05, 28, 94), clamp(accentHsl.l * 0.72, 20, 46)));
+    bgGradient.addColorStop(0, accentTop);
     bgGradient.addColorStop(0.5, accentMid);
     bgGradient.addColorStop(1, accentBottom);
   }
   ctx.fillStyle = bgGradient;
   ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
 
-  // Ambient aura orbs
+  // Ambient aura orbs (same hue as the album accent)
   const drawOrb = (ox, oy, radius, color, alpha) => {
     const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, radius);
     grad.addColorStop(0, rgba(color, alpha));
@@ -365,8 +360,8 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
     ctx.fillRect(ox - radius, oy - radius, radius * 2, radius * 2);
   };
   drawOrb(190, 260, 620, accentColor, isLight ? 0.28 : 0.4);
-  drawOrb(910, 1520, 680, isLight ? accentColor : accentComplement, isLight ? 0.3 : 0.32);
-  drawOrb(840, 420, 440, isLight ? accentComplement : tone(accentColor, { hueShift: -38 }), isLight ? 0.22 : 0.2);
+  drawOrb(910, 1520, 680, isLight ? accentColor : accentGlow, isLight ? 0.3 : 0.28);
+  drawOrb(840, 420, 440, isLight ? accentGlow : accentTop, isLight ? 0.22 : 0.18);
 
   // Top brand pill
   ctx.save();
@@ -405,8 +400,8 @@ export async function renderStoryCard({ review, themeId = 'aura', showQuote = tr
     cardGrad.addColorStop(0, 'rgba(255, 255, 255, 0.90)');
     cardGrad.addColorStop(1, 'rgba(241, 247, 252, 0.76)');
   } else {
-    cardGrad.addColorStop(0, rgba(hslToHex(accentHsl.h, clamp(accentHsl.s * 0.55, 14, 62), clamp(accentHsl.l * 0.36, 10, 26)), 0.9));
-    cardGrad.addColorStop(1, rgba(hslToHex(accentHsl.h + 26, clamp(accentHsl.s * 0.5, 12, 58), clamp(accentHsl.l * 0.2, 6, 15)), 0.88));
+    cardGrad.addColorStop(0, rgba(hslToHex(accentHsl.h, clamp(accentHsl.s * 0.6, 16, 64), clamp(accentHsl.l * 0.4, 10, 26)), 0.9));
+    cardGrad.addColorStop(1, rgba(hslToHex(accentHsl.h, clamp(accentHsl.s * 0.5, 14, 58), clamp(accentHsl.l * 0.22, 6, 15)), 0.88));
   }
   ctx.fillStyle = cardGrad;
   ctx.fill();
