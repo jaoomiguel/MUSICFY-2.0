@@ -2319,20 +2319,35 @@ app.get('/api/profile/:userId', optionalAuth, async (req, res) => {
       SELECT COUNT(*)
       FROM playlist_tracks pt
       WHERE pt.playlist_id = p.id
-    ) AS track_count
+    ) AS track_count, (
+      SELECT COUNT(*)
+      FROM playlist_collaborators pc
+      WHERE pc.playlist_id = p.id
+        AND UPPER(pc.status) = 'ACCEPTED'
+    ) AS collaborator_count
     FROM playlists p
     WHERE (
       p.user_id = ?
-      AND (p.is_public = 1 OR ? = ?)
-    ) OR EXISTS (
-      SELECT 1
-      FROM playlist_collaborators pc
-      WHERE pc.playlist_id = p.id
-        AND pc.user_id = ?
-        AND UPPER(pc.status) = 'ACCEPTED'
+      OR EXISTS (
+        SELECT 1
+        FROM playlist_collaborators pc
+        WHERE pc.playlist_id = p.id
+          AND pc.user_id = ?
+          AND UPPER(pc.status) = 'ACCEPTED'
+      )
+    ) AND (
+      p.is_public = 1
+      OR p.user_id = ?
+      OR EXISTS (
+        SELECT 1
+        FROM playlist_collaborators pc
+        WHERE pc.playlist_id = p.id
+          AND pc.user_id = ?
+          AND UPPER(pc.status) = 'ACCEPTED'
+      )
     )
-    ORDER BY p.created_at DESC
-  `, [userId, req.user?.id || 0, userId, req.user?.id || 0]);
+    ORDER BY p.created_at DESC, p.id DESC
+  `, [userId, userId, req.user?.id || 0, req.user?.id || 0]);
   const favorites = await allDb(`
     SELECT f.*, t.title AS track_title, r.id AS release_id, r.title AS release_title,
       r.cover_url AS release_cover, a.name AS artist_name
