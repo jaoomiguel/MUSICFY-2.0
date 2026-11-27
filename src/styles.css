@@ -11213,6 +11213,14 @@ body {
   .playlist-visibility-toggle { align-items: flex-start; }
 }
 
+.lazy-render {
+  min-height: var(--lazy-min-height, 120px);
+}
+
+.lazy-render-placeholder {
+  opacity: 0;
+}
+
 /* Ajustes de acessibilidade, compartilhamento e larguras intermediárias */
 .password-field { position: relative; display: flex; align-items: center; }
 .password-field input { width: 100%; padding-right: 3.2rem; }

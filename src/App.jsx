@@ -963,9 +963,42 @@ function FeaturedCarousel({ slides, user }) {
   );
 }
 
+function LazyMount({ children, minHeight = 120 }) {
+  const containerRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '800px 0px' });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="lazy-render"
+      style={{ '--lazy-min-height': `${minHeight}px` }}
+    >
+      {isVisible ? children : <div className="lazy-render-placeholder" aria-hidden="true" />}
+    </div>
+  );
+}
+
 function HomePage() {
   const { user } = useAuth();
-  const [reviews, setReviews] = useState([]);
   const [followingReviews, setFollowingReviews] = useState([]);
   const [generalReviews, setGeneralReviews] = useState([]);
   const [feedMode, setFeedMode] = useState('following');
@@ -985,7 +1018,6 @@ function HomePage() {
     api.get('/home-feed')
       .then((response) => {
         if (!active) return;
-        setReviews(response.data.reviews || []);
         setFollowingReviews(response.data.following_reviews || []);
         setGeneralReviews(response.data.general_reviews || []);
         setFeaturedSlides(response.data.featured_slides || []);
@@ -993,7 +1025,8 @@ function HomePage() {
       })
       .catch((requestError) => {
         if (active) {
-          setReviews([]);
+          setFollowingReviews([]);
+          setGeneralReviews([]);
           setFeaturedSlides([]);
           setRecentReleases([]);
           setError(requestError.response?.data?.error || 'Não foi possível carregar seu feed.');
@@ -1007,11 +1040,6 @@ function HomePage() {
   }, [user?.id]);
 
   const handleReviewLikeChange = (reviewId, liked, likeCount) => {
-    setReviews((current) => current.map((review) => (
-      review.id === reviewId
-        ? { ...review, liked_by_user: liked, like_count: likeCount }
-        : review
-    )));
     setFollowingReviews((current) => current.map((review) => (
       review.id === reviewId ? { ...review, liked_by_user: liked, like_count: likeCount } : review
     )));
@@ -1024,13 +1052,11 @@ function HomePage() {
     const updateList = (current) => current.map((review) => (
       String(review.id) === String(updatedReview.id) ? updatedReview : review
     ));
-    setReviews(updateList);
     setFollowingReviews(updateList);
     setGeneralReviews(updateList);
   };
 
   const handleReviewDeleted = (reviewId) => {
-    setReviews((current) => current.filter((review) => String(review.id) !== String(reviewId)));
     setFollowingReviews((current) => current.filter((review) => String(review.id) !== String(reviewId)));
     setGeneralReviews((current) => current.filter((review) => String(review.id) !== String(reviewId)));
   };
@@ -1057,7 +1083,7 @@ function HomePage() {
           <div>
             <p className="eyebrow">Música compartilhada</p>
             <h1>Seu feed</h1>
-            <p>{user ? 'Resenhas de quem você segue e dos lançamentos que salvou.' : 'Descubra o que as pessoas estão ouvindo.'}</p>
+            <p>{user ? (feedMode === 'following' ? 'Resenhas de quem você segue.' : 'Todas as resenhas da comunidade.') : 'Descubra o que as pessoas estão ouvindo.'}</p>
           </div>
           <Link to={user ? '/social' : '/auth'} className="home-network-link">
             {user ? 'Encontrar pessoas' : 'Entrar'}
@@ -1080,7 +1106,13 @@ function HomePage() {
               <p className="eyebrow">Comunidade musical</p>
               <h2 id="home-feed-title">Resenhas</h2>
             </div>
-            {!isLoading && <span>{visibleReviews.length} de {reviews.length} resenhas</span>}
+            {!isLoading && (
+            <span>
+              {visibleReviews.length === selectedFeedReviews.length
+                ? `${selectedFeedReviews.length} ${selectedFeedReviews.length === 1 ? 'resenha' : 'resenhas'}`
+                : `${visibleReviews.length} de ${selectedFeedReviews.length} resenhas`}
+            </span>
+          )}
           </div>
 
           <div className="listing-filters home-feed-filters">
@@ -1137,11 +1169,11 @@ function HomePage() {
     });
 
   return (
-    <article
-      key={review.id}
-      className="home-review-card glass-panel"
-      style={{ "--review-accent": accentColor, "--release-accent": accentColor }}
-    >
+    <LazyMount key={review.id} minHeight={260}>
+      <article
+        className="home-review-card glass-panel"
+        style={{ "--review-accent": accentColor, "--release-accent": accentColor }}
+      >
       <header className="home-review-author-row">
         <Link to={`/profile/${review.user_id}`} className="home-review-author">
           <img
@@ -1198,7 +1230,8 @@ function HomePage() {
           Abrir lançamento
         </Link>
       </footer>
-    </article>
+      </article>
+    </LazyMount>
   );
 })}
             </div>
@@ -1481,8 +1514,6 @@ function ArtistsPage() {
   const [artists, setArtists] = useState([]);
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState('popular');
-  const [visibleArtistCount, setVisibleArtistCount] = useState(24);
-
   useEffect(() => {
     api.get('/artists').then((res) => setArtists(res.data)).catch(console.error);
   }, []);
@@ -1492,10 +1523,6 @@ function ArtistsPage() {
     .sort((a, b) => sortMode === 'name'
       ? (a.name || '').localeCompare(b.name || '')
       : Number(b.release_count || 0) - Number(a.release_count || 0));
-
-  useEffect(() => {
-    setVisibleArtistCount(24);
-  }, [query, sortMode]);
 
   return (
     <div className="content-stack artists-page">
@@ -1521,15 +1548,7 @@ function ArtistsPage() {
             <ArtistCard key={artist.id} artist={artist} />
           ))}
           </div>
-          {visibleArtistCount < filtered.length && (
-            <button
-              type="button"
-              className="load-more-btn"
-              onClick={() => setVisibleArtistCount((current) => Math.min(current + 24, filtered.length))}
-            >
-              Carregar mais artistas ({filtered.length - visibleArtistCount} restantes)
-            </button>
-          )}
+          
         </>
       ) : (
         <div className="profile-empty-state glass-panel">
