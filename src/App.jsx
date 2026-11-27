@@ -976,10 +976,13 @@ function LazyMount({ children, minHeight = 120 }) {
     }
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setIsVisible(true);
-        observer.disconnect();
-      }
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        } else {
+          setIsVisible(false);
+        }
+      });
     }, { rootMargin: '800px 0px' });
 
     observer.observe(node);
@@ -1500,7 +1503,11 @@ function ExplorePage() {
           </select>
         </div>
         <div className="card-grid">
-          {filteredReleases.map((release) => <ReleaseCard key={release.id} release={release} />)}
+          {filteredReleases.map((release) => (
+            <LazyMount key={release.id} minHeight={150}>
+              <ReleaseCard release={release} />
+            </LazyMount>
+          ))}
         </div>
         {filteredReleases.length === 0 && (
           <p className="explore-empty-state">Nenhum lançamento corresponde aos filtros selecionados.</p>
@@ -1544,8 +1551,10 @@ function ArtistsPage() {
       {filtered.length ? (
         <>
           <div className="artist-grid">
-          {filtered.slice(0, visibleArtistCount).map((artist) => (
-            <ArtistCard key={artist.id} artist={artist} />
+          {filtered.map((artist) => (
+            <LazyMount key={artist.id} minHeight={110}>
+              <ArtistCard artist={artist} />
+            </LazyMount>
           ))}
           </div>
           
