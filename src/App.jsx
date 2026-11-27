@@ -7,6 +7,7 @@ import arianaGrandeProfileImage from './img/artist/ariana grande/icon/ariana gra
 import slayyyterProfileImage from './img/artist/slayyyter/slayyyter-profile.jpg';
 import slayyyterAlbumCover from './img/artist/slayyyter/worstmaninamerica_cover.jpg';
 import imagePlaceholder from './img/musicfy-image-placeholder.svg';
+import { STORY_THEMES, renderStoryCard } from './storyCard';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -1716,7 +1717,7 @@ function ReviewLikeButton({ review, user, onChange }) {
 function ShareReviewButton({ review, user }) {
   const [isOpen, setIsOpen] = useState(false);
   const [shareMode, setShareMode] = useState('external');
-  const [themeId, setThemeId] = useState('aura');
+  const [themeId, setThemeId] = useState('vinyl');
   const [showQuote, setShowQuote] = useState(true);
   const [previewUrl, setPreviewUrl] = useState('');
   const [storyBlob, setStoryBlob] = useState(null);

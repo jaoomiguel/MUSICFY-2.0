@@ -10705,6 +10705,115 @@ body {
   gap: 16px;
 }
 
+.story-share-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--modal-accent) 30%, rgba(255, 255, 255, 0.16));
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.story-share-close:hover {
+  transform: rotate(90deg);
+  border-color: var(--modal-accent);
+  background: color-mix(in srgb, var(--modal-accent) 16%, rgba(255, 255, 255, 0.06));
+}
+
+.story-control-group {
+  display: grid;
+  gap: 10px;
+}
+
+.story-control-label {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.story-theme-pills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.story-theme-pill {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.story-theme-pill:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--modal-accent) 45%, rgba(255, 255, 255, 0.16));
+}
+
+.story-quote-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.story-share-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.story-share-actions .primary-btn,
+.story-share-actions .secondary-btn {
+  min-height: 46px;
+}
+
+.story-share-actions .ghost-btn {
+  grid-column: 1 / -1;
+}
+
+.story-share-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+:root[data-theme="light"] .story-share-close,
+:root[data-theme="light"] .story-theme-pill,
+:root[data-theme="light"] .story-quote-toggle {
+  border-color: rgba(30, 48, 69, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 720px) {
+  .story-theme-pills,
+  .story-share-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .share-modal-section {
   display: grid;
   gap: 12px;
