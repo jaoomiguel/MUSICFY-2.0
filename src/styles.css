@@ -1625,13 +1625,14 @@ select option:checked {
   gap: 12px;
   margin-top: 3px;
   padding: 11px 17px;
-  border: 1px solid rgba(255, 255, 255, 0.48);
+  /* border: 1px solid rgba(255, 255, 255, 0.48); */
   border-radius: 999px;
-  color: #16231f;
-  background: linear-gradient(135deg, #c0ffe3, #54a286);
+  color: #ffffff;
+  background: linear-gradient(135deg, #6cff92, #006bff);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
   font-size: 0.86rem;
   font-weight: 800;
+  font: inherit;
   text-decoration: none;
   transition: transform 180ms ease, filter 180ms ease;
 }
@@ -1914,7 +1915,7 @@ select option:checked {
 }
 
 .home-feed-tabs button.is-active {
-  background: linear-gradient(135deg, #25ebe1, #478ef1);
+  background: linear-gradient(135deg, #6cff92, #006bff);
   color: #fff;
   box-shadow: 0 8px 20px #258beb44;
 }
@@ -2604,7 +2605,7 @@ select option:checked {
 .genre-track .genre-pill.is-selected {
   color: #10251c;
   border-color: transparent;
-  background: linear-gradient(135deg, #a9ebc8, #7fd9b2);
+  background: linear-gradient(135deg, #6cff92, #006bff);
   box-shadow: 0 7px 20px rgba(109, 207, 159, 0.18);
 }
 
@@ -3659,7 +3660,7 @@ textarea {
 
 .profile-page .profile-tabs button.is-active {
   border-color: var(--line);
-  background: linear-gradient(135deg, rgba(155, 229, 199, 0.2), rgba(242, 213, 107, 0.1));
+  background: linear-gradient(135deg, #3dffb159, #1d9fff70);
   color: var(--text);
 }
 
@@ -4949,7 +4950,6 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
 }
 
 .review-like-btn {
@@ -8489,13 +8489,13 @@ textarea {
   flex: 1 1 auto;
   min-width: 0;
   max-width: min(100%, 680px);
-  padding: clamp(12px, 2vw, 18px) clamp(14px, 2.4vw, 22px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 18px;
-  background: linear-gradient(110deg, rgba(5, 9, 16, 0.64), rgba(5, 9, 16, 0.34));
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  padding: clamp(16px, 2.4vw, 26px) clamp(18px, 3vw, 30px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(10, 16, 26, 0.52), rgba(10, 16, 26, 0.30));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 .profile-page .profile-copy-content h1 {
@@ -8507,7 +8507,7 @@ textarea {
 .profile-page .profile-hero .profile-copy-content p,
 .profile-page .profile-hero .profile-copy-content span {
   color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.82);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .profile-page .profile-hero .profile-copy-content p {
