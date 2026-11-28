@@ -2281,7 +2281,7 @@ function ReviewOwnerActions({ review, user, onUpdated, onDeleted }) {
           onClick={() => !isSaving && !isUploadingGif && setIsEditing(false)}
         >
           <section
-            className="review-modal glass-panel"
+            className="review-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby={`edit-review-title-${review.id}`}
@@ -3902,7 +3902,7 @@ function ReleaseDetailPage() {
       {isReviewModalOpen && canWrite && (
         <div className="modal-backdrop review-backdrop" onClick={() => !isSubmittingReview && setIsReviewModalOpen(false)}>
           <div
-            className="review-modal glass-panel"
+            className="review-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="review-modal-title"
