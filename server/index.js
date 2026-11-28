@@ -191,6 +191,51 @@ const saveReleaseArtists = async (releaseId, primaryArtistId, requestedArtistIds
   }
 };
 
+const attachTrackArtists = async (tracks) => {
+  if (!Array.isArray(tracks) || !tracks.length) return tracks || [];
+  const trackIds = [...new Set(tracks.map((track) => Number(track.id)).filter(Number.isSafeInteger))];
+  if (!trackIds.length) return tracks;
+
+  const placeholders = trackIds.map(() => '?').join(', ');
+  const rows = await allDb(`
+    SELECT ta.track_id, ta.sort_order, a.id, a.name, a.image_url
+    FROM track_artists ta
+    JOIN artists a ON a.id = ta.artist_id
+    WHERE ta.track_id IN (${placeholders})
+    ORDER BY ta.track_id ASC, ta.sort_order ASC, a.name ASC
+  `, trackIds);
+
+  const artistsByTrack = new Map();
+  for (const row of rows) {
+    const artistList = artistsByTrack.get(row.track_id) || [];
+    artistList.push({ id: row.id, name: row.name, image_url: row.image_url });
+    artistsByTrack.set(row.track_id, artistList);
+  }
+
+  return tracks.map((track) => ({
+    ...track,
+    featured_artists: artistsByTrack.get(track.id) || [],
+  }));
+};
+
+const saveTrackArtists = async (trackId, requestedArtistIds = [], excludeArtistId = null) => {
+  await runDb('DELETE FROM track_artists WHERE track_id = ?', [trackId]);
+  if (!Array.isArray(requestedArtistIds)) return;
+
+  const uniqueIds = [...new Set(requestedArtistIds
+    .map((artistId) => Number(artistId))
+    .filter((artistId) => Number.isSafeInteger(artistId) && artistId > 0 && artistId !== Number(excludeArtistId)))];
+
+  for (const [index, artistId] of uniqueIds.entries()) {
+    const artist = await getDb('SELECT id FROM artists WHERE id = ?', [artistId]);
+    if (!artist) throw Object.assign(new Error('One of the featured artists does not exist.'), { statusCode: 400 });
+    await runDb(
+      'INSERT INTO track_artists (track_id, artist_id, sort_order) VALUES (?, ?, ?)',
+      [trackId, artistId, index]
+    );
+  }
+};
+
 const createNotificationOnConnection = async (connection, userId, type, message, linkUrl, actorUserId = null, playlistCollaboratorId = null) => {
   const [result] = await connection.execute(
     'INSERT INTO notifications (user_id, type, actor_user_id, message, link_url, playlist_collaborator_id) VALUES (?, ?, ?, ?, ?, ?)',
@@ -1435,11 +1480,11 @@ app.get('/api/releases/:id', async (req, res) => {
       trackIds
     );
   }
-  const enrichedTracks = tracks.map((track) => ({
+  const enrichedTracks = await attachTrackArtists(tracks.map((track) => ({
     ...track,
     texts: trackTexts.filter((text) => text.track_id === track.id),
     links: trackLinks.filter((link) => link.track_id === track.id),
-  }));
+  })));
   const reviews = await allDb(`
     SELECT rv.*, rm.gif_url, u.username, u.avatar_url,
       r.accent_color AS release_accent_color, a.accent_color AS artist_accent_color,
@@ -1519,6 +1564,18 @@ app.post('/api/releases', requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Selecione apenas artistas válidos como feats.' });
     }
   }
+  for (const track of tracks) {
+    if (track.featured_artist_ids === undefined || track.featured_artist_ids === null) continue;
+    if (!Array.isArray(track.featured_artist_ids)) {
+      return res.status(400).json({ error: 'Os feats devem ser enviados como uma lista de artistas.' });
+    }
+    for (const featuredArtistId of track.featured_artist_ids) {
+      const requestedId = Number(featuredArtistId);
+      if (!Number.isSafeInteger(requestedId) || requestedId < 1) {
+        return res.status(400).json({ error: 'Selecione apenas artistas válidos como feats.' });
+      }
+    }
+  }
 
   const isFuture = isFutureReleaseDate(release_date);
   const release = await runDb(
@@ -1533,6 +1590,7 @@ app.post('/api/releases', requireAuth, requireAdmin, async (req, res) => {
       [release.id, track.title || `Faixa ${index + 1}`, track.duration || null, track.explicit ? 1 : 0, track.youtube_url || '', track.lyrics || '', track.translation || '', index + 1]
     );
     await saveLegacyTrackContent(createdTrack.id, track);
+    await saveTrackArtists(createdTrack.id, track.featured_artist_ids || [], resolvedArtistId);
   }
 
   if (!isFuture) {
@@ -1617,6 +1675,18 @@ app.put('/api/releases/:id', requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Selecione apenas artistas válidos como feats.' });
     }
   }
+  for (const track of tracks) {
+    if (track.featured_artist_ids === undefined || track.featured_artist_ids === null) continue;
+    if (!Array.isArray(track.featured_artist_ids)) {
+      return res.status(400).json({ error: 'Os feats devem ser enviados como uma lista de artistas.' });
+    }
+    for (const featuredArtistId of track.featured_artist_ids) {
+      const requestedId = Number(featuredArtistId);
+      if (!Number.isSafeInteger(requestedId) || requestedId < 1) {
+        return res.status(400).json({ error: 'Selecione apenas artistas válidos como feats.' });
+      }
+    }
+  }
 
   const isFuture = isFutureReleaseDate(release_date || existingRelease.release_date);
   await runDb(
@@ -1646,6 +1716,7 @@ app.put('/api/releases/:id', requireAuth, requireAdmin, async (req, res) => {
       [trackId]
     );
     await saveLegacyTrackContent(trackId, track);
+    await saveTrackArtists(trackId, track.featured_artist_ids || [], resolvedArtistId);
   }
 
   const removedTrackIds = [...existingTrackIds].filter((trackId) => !retainedTrackIds.has(trackId));
