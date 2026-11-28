@@ -153,16 +153,6 @@ CREATE TABLE IF NOT EXISTS tracks (
   CONSTRAINT fk_tracks_release FOREIGN KEY (release_id) REFERENCES releases(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS track_artists (
-  track_id BIGINT UNSIGNED NOT NULL,
-  artist_id BIGINT UNSIGNED NOT NULL,
-  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
-  PRIMARY KEY (track_id, artist_id),
-  KEY idx_track_artists_artist_id (artist_id),
-  CONSTRAINT fk_track_artists_track FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
-  CONSTRAINT fk_track_artists_artist FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE IF NOT EXISTS artist_links (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   artist_id BIGINT UNSIGNED NOT NULL,
