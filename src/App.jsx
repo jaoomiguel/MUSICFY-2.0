@@ -3730,6 +3730,17 @@ function ReleaseDetailPage() {
                     <div className="track-text-block">
                       <strong>{track.title}</strong>
                       <small>{track.duration}</small>
+                      {(track.featured_artists || []).length > 0 && (
+                        <small className="track-featured-artists">
+                          feat.{' '}
+                          {track.featured_artists.map((artist, artistIndex) => (
+                            <span key={artist.id}>
+                              {artistIndex > 0 ? ', ' : ''}
+                              <Link to={`/artists/${artist.id}`}>{artist.name}</Link>
+                            </span>
+                          ))}
+                        </small>
+                      )}
                     </div>
                     {Boolean(track.explicit) && (
                       <span className="explicit-tag" aria-label="Conteúdo explícito" title="Conteúdo explícito">
@@ -5463,7 +5474,7 @@ function AdminPage() {
     release_date: '',
     genre: '',
     description: '',
-    tracks: [{ title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '' }],
+    tracks: [{ title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '', featured_artist_ids: [] }],
   });
   const [genreOptions, setGenreOptions] = useState(MUSIC_GENRES);
   const [newGenreName, setNewGenreName] = useState('');
@@ -5610,6 +5621,7 @@ function AdminPage() {
         youtube_url: '',
         lyrics: '',
         translation: '',
+        featured_artist_ids: [],
       }));
       const primaryType = release.type === 'EP' || release.type === 'Single' ? release.type : 'Album';
       setReleaseForm((current) => ({
@@ -5722,10 +5734,25 @@ function AdminPage() {
     }
   };
 
+  const toggleTrackFeaturedArtist = (index, artistId) => {
+    setReleaseForm((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track, trackIndex) => {
+        if (trackIndex !== index) return track;
+        const currentIds = (track.featured_artist_ids || []).map(String);
+        const id = String(artistId);
+        return {
+          ...track,
+          featured_artist_ids: currentIds.includes(id) ? currentIds.filter((item) => item !== id) : [...currentIds, id],
+        };
+      }),
+    }));
+  };
+
   const addTrackRow = () => {
     setReleaseForm((prev) => ({
       ...prev,
-      tracks: [...prev.tracks, { title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '' }],
+      tracks: [...prev.tracks, { title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '', featured_artist_ids: [] }],
     }));
   };
 
@@ -5752,7 +5779,7 @@ function AdminPage() {
       release_date: '',
       genre: '',
       description: '',
-      tracks: [{ title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '' }],
+      tracks: [{ title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '', featured_artist_ids: [] }],
     });
   };
 
@@ -5761,7 +5788,7 @@ function AdminPage() {
     setAdminError('');
 
     const validTracks = releaseForm.tracks
-      .filter((track) => track.title || track.youtube_url || track.lyrics || track.translation)
+      .filter((track) => track.title || track.youtube_url || track.lyrics || track.translation || (track.featured_artist_ids || []).length)
       .map((track, index) => ({
         title: track.title || `Faixa ${index + 1}`,
         duration: track.duration || '',
@@ -5769,6 +5796,7 @@ function AdminPage() {
         youtube_url: track.youtube_url || '',
         lyrics: track.lyrics || '',
         translation: track.translation || '',
+        featured_artist_ids: (track.featured_artist_ids || []).map(Number).filter(Number.isSafeInteger),
       }));
 
     const payload = {
@@ -5915,7 +5943,8 @@ function AdminPage() {
       youtube_url: track.youtube_url || '',
       lyrics: track.lyrics || '',
       translation: track.translation || '',
-    })) || [{ title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '' }];
+      featured_artist_ids: (track.featured_artists || []).map((artist) => String(artist.id)),
+    })) || [{ title: '', duration: '3:00', explicit: false, youtube_url: '', lyrics: '', translation: '', featured_artist_ids: [] }];
 
     setReleaseForm({
       title: detail.data.release.title || '',
@@ -6433,7 +6462,7 @@ function AdminPage() {
                 </div>
 
                 <details className="track-editor-details">
-                  <summary>Letra, tradução e link do YouTube</summary>
+                  <summary>Letra, tradução, link do YouTube e feats</summary>
                   <div className="track-editor-extra">
                     <input aria-label={`Link do YouTube da faixa ${index + 1}`} value={track.youtube_url} onChange={(e) => updateTrack(index, 'youtube_url', e.target.value)} placeholder="Link do YouTube" />
                     <div className="track-editor-lyrics-grid">
@@ -6446,6 +6475,30 @@ function AdminPage() {
                         <textarea value={track.translation} onChange={(e) => updateTrack(index, 'translation', e.target.value)} placeholder="Cole a tradução aqui" rows="4" />
                       </label>
                     </div>
+                    <fieldset className="featured-artists-fieldset track-featured-artists">
+                      <legend>Feats da faixa (artistas adicionais)</legend>
+                      {artistList.filter((artist) => String(artist.id) !== String(releaseForm.artist_id)).length ? (
+                        <div className="featured-artists-options">
+                          {artistList
+                            .filter((artist) => String(artist.id) !== String(releaseForm.artist_id))
+                            .map((artist) => {
+                              const isSelected = (track.featured_artist_ids || []).map(String).includes(String(artist.id));
+                              return (
+                                <label key={artist.id} className={`featured-artist-option${isSelected ? ' is-selected' : ''}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleTrackFeaturedArtist(index, artist.id)}
+                                  />
+                                  {artist.name}
+                                </label>
+                              );
+                            })}
+                        </div>
+                      ) : (
+                        <p className="image-drop-hint">Cadastre outros artistas para adicionar feats a esta faixa.</p>
+                      )}
+                    </fieldset>
                   </div>
                 </details>
               </div>
