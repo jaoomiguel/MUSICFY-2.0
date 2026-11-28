@@ -2870,15 +2870,6 @@ select option:checked {
   font-size: 0.78rem;
 }
 
-.track-featured-artists a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.track-featured-artists a:hover {
-  text-decoration: underline;
-}
-
 .explicit-tag,
 .clean-tag {
   display: inline-flex;
